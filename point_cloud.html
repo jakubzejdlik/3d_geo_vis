@@ -1,0 +1,96 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>3D-Geo-Vis</title>
+    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="https://js.arcgis.com/4.29/esri/themes/light/main.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://js.arcgis.com/4.29/"></script>
+    <script src="point_cloudJS.js"></script>
+    <link rel="icon" href="favicon.png" type="image/png">
+  </head>
+  <body>
+    <div id="headerBar">
+      <span class="header-app-title">3D-Geo-Vis</span>
+      <div class="header-right-controls">
+        <div class="header-nav-links">
+          <a href="horizontal.html" class="nav-link">Horizontal Planes</a>
+          <a href="point_cloud.html" class="nav-link active-nav-link">Point Cloud</a>
+          <a href="3D_surface.html" class="nav-link">3D Surface</a>
+          <a href="vertical.html" class="nav-link">Vertical Planes</a>
+          <a href="3D_graduated.html" class="nav-link">3D Graduated Symbols</a>
+          <a href="prism.html" class="nav-link">Prism Map</a>
+          <a href="voxels.html" class="nav-link">Voxels</a>
+        </div>
+        <button id="helpButton" class="header-button esri-icon-question" title="Help"></button>
+      </div>
+    </div>
+
+    <div id="viewDiv"></div>
+
+    <div id="symbologyEditorPanel" class="panel">
+      <div class="panel-header">
+        </div>
+      <div class="panel-content">
+        <h3 id="symbologyPanelTitle">Edit Symbology: Point Cloud</h3>
+        <div id="symbologyControls">
+          <h2>Color Ramp</h2>
+          <div class="color-pickers-wrapper">
+            <input type="color" id="startColorPicker" value="#4575b4">
+            <input type="color" id="middleColorPicker" value="#ffffbf">
+            <input type="color" id="endColorPicker" value="#d73027">
+          </div>
+          <div id="colorRampPreview"></div>
+          <hr>
+
+          <h2>Transparency</h2>
+          <input type="range" id="transparencyInput" value="1" min="0" max="1" step="0.01"><br>
+          <hr>
+
+          <h2>Point Size</h2>
+          <label for="sizeInput">Size:</label>
+          <input type="number" id="sizeInput" value="40000" min="0" step="1000"><br>
+          <hr>
+
+          <h2>Height (Elevation)</h2>
+          <label for="minZOffsetInput">Min Z Offset:</label>
+          <input type="number" id="minZOffsetInput" value="0" min="-100000" step="1000"><br>
+          <label for="maxZOffsetInput">Max Z Offset:</label>
+          <input type="number" id="maxZOffsetInput" value="200000" min="-100000" step="1000"><br>
+          <hr>
+                    
+          <h2>Shape</h2>
+          <select id="shapeSelect">
+            <option value="sphere">Sphere</option>
+            <option value="cube">Cube</option>
+            <option value="diamond">Diamond</option>
+          </select>
+          <hr>
+
+          <button id="applySymbologyButton">Apply Symbology</button>
+        </div>
+        <div id="symbologyNotSupportedMessage" style="display:none;">
+          Symbology editing is not supported for this layer type.
+        </div>
+      </div>
+    </div>
+
+    <div id="helpModalOverlay" class="modal-overlay">
+      <div id="helpModal" class="help-modal">
+        <button id="closeHelpModal" class="close-button">&times;</button>
+        <h3>Controls</h3>
+        <p><strong>Pan:</strong> Click and drag the left mouse button.</p>
+        <p><strong>Tilt / Rotate:</strong> Click and drag the right mouse button.</p>
+        <p><strong>Zoom:</strong> Scroll the mouse wheel, or use the <code>+</code>/<code>-</code> buttons in the navigation widget, or double-click to zoom in.</p>
+        <p><strong>Select:</strong> Click on a feature to view its pop-up.</p>
+        <p><strong>Symbology Panel:</strong> Use the panel on the right to customize symbology of the data.</p>
+        
+        <hr> <p style="color:grey"><b>Data:</b> Air Temperature on January 1, 2014 in 00:00</p>
+        <p style="color:grey"><b>Author:</b> Jakub Žejdlík (jakub.zejdlik@upol.cz)</p>
+        <p style="color:grey">Department of Geoinformatics, Faculty of Science, Palacký University Olomouc</p>
+      </div>
+    </div>
+
+  </body>
+</html>
