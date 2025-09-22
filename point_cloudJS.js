@@ -5,12 +5,26 @@ require([
   "esri/widgets/Home",
   "esri/widgets/BasemapGallery",
   "esri/widgets/Expand",
-  "esri/widgets/Legend" 
-], function(Map, SceneView, FeatureLayer, Home, BasemapGallery, Expand, Legend) {
-
+  "esri/widgets/Legend",
+  "esri/symbols/ObjectSymbol3DLayer",
+  "esri/symbols/PointSymbol3D"
+], function (
+  Map,
+  SceneView,
+  FeatureLayer,
+  Home,
+  BasemapGallery,
+  Expand,
+  Legend,
+  ObjectSymbol3DLayer,
+  PointSymbol3D
+) {
+  // -----------------------------
+  // MAPA A VRSTVA
+  // -----------------------------
   const map = new Map({
     basemap: "topo-vector",
-    ground: "world-elevation"
+    ground: "world-elevation",
   });
 
   const euPointCloudLayer = new FeatureLayer({
@@ -20,20 +34,22 @@ require([
     title: "Point Cloud",
     popupTemplate: {
       title: "Temperature",
-      content: "Value: {Temperature}"
+      content: "Value: {Temperature}",
     },
     renderer: {
       type: "simple",
       symbol: {
         type: "point-3d",
-        symbolLayers: [{
-          type: "object",
-          resource: { primitive: "sphere" },
-          material: { color: "white" },
-          height: 5,
-          width: 5,
-          depth: 5
-        }]
+        symbolLayers: [
+          {
+            type: "object",
+            resource: { primitive: "sphere" },
+            material: { color: "white" },
+            height: 5,
+            width: 5,
+            depth: 5,
+          },
+        ],
       },
       visualVariables: [
         {
@@ -42,66 +58,82 @@ require([
           stops: [
             { value: 265, color: "#4575b4" },
             { value: 277, color: "#ffffbf" },
-            { value: 289, color: "#d73027" }
-          ]
+            { value: 289, color: "#d73027" },
+          ],
         },
         {
           type: "opacity",
           field: "Temperature",
           stops: [
             { value: 265, opacity: 1 },
-            { value: 289, opacity: 1 }
-          ]
+            { value: 289, opacity: 1 },
+          ],
         },
         {
           type: "size",
           field: "Temperature",
+          valueUnit: "meters",
           stops: [
-            { value: 265, size: 40000  }, 
-            { value: 289, size: 40000  }  
-          ]
-        }
-      ]
-    }
+            { value: 265, size: 40000 },
+            { value: 289, size: 40000 },
+          ],
+        },
+      ],
+    },
+    elevationInfo: {
+      mode: "relative-to-ground",
+      // featureExpressionInfo nastavíme dynamicky z UI (viz níže)
+    },
   });
 
-  map.addMany([euPointCloudLayer]);
+  map.add(euPointCloudLayer);
 
   const view = new SceneView({
     container: "viewDiv",
     map: map,
     camera: {
       position: {
-        latitude: 48,       
-        longitude: 15,      
-        z: 15000000        
+        latitude: 48,
+        longitude: 15,
+        z: 15000000,
       },
       tilt: 0,
-      heading: -1
+      heading: -1,
     },
     constraints: {
-      rotationEnabled: true
-    }
+      rotationEnabled: true,
+    },
+    qualityProfile: "high",
   });
-  
 
-  const homeWidget = new Home({
-    view: view
-  });
+  // -----------------------------
+  // WIDGETS
+  // -----------------------------
+  const homeWidget = new Home({ view });
   view.ui.add(homeWidget, "top-left");
 
-  const basemapGallery = new BasemapGallery({
-    view: view
-  });
-
+  const basemapGallery = new BasemapGallery({ view });
   const basemapGalleryExpand = new Expand({
-    view: view,
+    view,
     content: basemapGallery,
-    expandIconClass: "esri-icon-basemap"
+    expandIconClass: "esri-icon-basemap",
   });
   view.ui.add(basemapGalleryExpand, "top-left");
 
-  const symbologyEditorPanel = document.getElementById("symbologyEditorPanel");
+  const legend = new Legend({
+    view,
+    layerInfos: [{ layer: euPointCloudLayer, title: "Point Cloud" }],
+  });
+  const legendExpand = new Expand({
+    view,
+    content: legend,
+    expandIconClass: "esri-icon-legend",
+  });
+  view.ui.add(legendExpand, "bottom-left");
+
+  // -----------------------------
+  // UI ELEMENTY Z HTML
+  // -----------------------------
   const startColorPicker = document.getElementById("startColorPicker");
   const middleColorPicker = document.getElementById("middleColorPicker");
   const endColorPicker = document.getElementById("endColorPicker");
@@ -109,293 +141,212 @@ require([
   const sizeInput = document.getElementById("sizeInput");
   const minZOffsetInput = document.getElementById("minZOffsetInput");
   const maxZOffsetInput = document.getElementById("maxZOffsetInput");
-  const applySymbologyButton = document.getElementById("applySymbologyButton");
   const colorRampPreview = document.getElementById("colorRampPreview");
-  const symbologyNotSupportedMessage = document.getElementById("symbologyNotSupportedMessage");
   const shapeSelect = document.getElementById("shapeSelect");
 
-  let activeLayerForSymbology = euPointCloudLayer; 
-  let currentRenderer; 
+  // Help modal prvky
+  const helpButton = document.getElementById("helpButton");
+  const helpOverlay = document.getElementById("helpModalOverlay");
+  const helpModal = document.getElementById("helpModal");
+  const closeHelpModalBtn = document.getElementById("closeHelpModal");
 
-  function rgbaToHex(rgba) {
-    if (rgba && typeof rgba.toHex === 'function') {
-        return rgba.toHex();
-    }
-    const parts = rgba.match(/^rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*(\d+\.?\d*))?\)$/);
-    if (!parts) return "#000000"; 
+  const activeLayerForSymbology = euPointCloudLayer;
 
-    const r = parseInt(parts[1]).toString(16).padStart(2, '0');
-    const g = parseInt(parts[2]).toString(16).padStart(2, '0');
-    const b = parseInt(parts[3]).toString(16).padStart(2, '0');
-    return `#${r}${g}${b}`;
-  }
+  // -----------------------------
+  // KONSTANTY A POMOCNÉ FUNKCE
+  // -----------------------------
+  const TEMP_MIN = 265;
+  const TEMP_MID = 277;
+  const TEMP_MAX = 289;
+
+  let booting = true; // bìhem úvodního fly-in neaplikujeme zmìny do mapy
 
   function updateColorRampPreview(stops) {
-    let gradientCss = "linear-gradient(to right, ";
-    stops.forEach((stop, index) => {
-        const colorValue = typeof stop.color === 'object' && stop.color.toHex ? stop.color.toHex() : stop.color;
-        gradientCss += colorValue;
-        if (index < stops.length - 1) {
-            gradientCss += ", ";
-        }
-    });
-    gradientCss += ")";
-    colorRampPreview.style.background = gradientCss;
+    if (!colorRampPreview || !Array.isArray(stops) || !stops.length) return;
+    const colors = stops.map((s) => (s.color && s.color.toHex ? s.color.toHex() : s.color));
+    colorRampPreview.style.background = `linear-gradient(to right, ${colors.join(", ")})`;
   }
-  
-  function updateColorRamp() {
+
+  function updateColorRampPreviewFromInputs() {
     updateColorRampPreview([
-      { value: 265, color: startColorPicker.value },
-      { value: 277, color: middleColorPicker.value },
-      { value: 289, color: endColorPicker.value }
+      { value: TEMP_MIN, color: startColorPicker?.value || "#4575b4" },
+      { value: TEMP_MID, color: middleColorPicker?.value || "#ffffbf" },
+      { value: TEMP_MAX, color: endColorPicker?.value || "#d73027" },
     ]);
   }
 
-  if (startColorPicker) {
-    startColorPicker.addEventListener("input", updateColorRamp);
+  function debounce(fn, delay = 100) {
+    let t = null;
+    return (...args) => {
+      clearTimeout(t);
+      t = setTimeout(() => fn(...args), delay);
+    };
   }
 
-  if (middleColorPicker) {
-    middleColorPicker.addEventListener("input", updateColorRamp);
+  // Bezpeèné mapování tvarù
+  function resolvePrimitive(value) {
+    const v = String(value || "").toLowerCase();
+    const allowed = ["sphere", "cube", "cylinder", "cone", "tetrahedron", "diamond"];
+    return allowed.includes(v) ? v : "sphere";
   }
 
-  if (endColorPicker) {
-    endColorPicker.addEventListener("input", updateColorRamp);
+  // Vytvoøí NOVÝ symbol pro bod
+  function buildPoint3DSymbol(primitive) {
+    const objLayer = new ObjectSymbol3DLayer({
+      resource: { primitive },
+      material: { color: "white" },
+      height: 5,
+      width: 5,
+      depth: 5,
+    });
+    return new PointSymbol3D({
+      symbolLayers: [objLayer],
+    });
   }
 
-  function applyCurrentSymbology() {
+  // Vytvoøí renderer z aktuálních hodnot UI
+  function buildUpdatedRendererFromUI(baseRenderer) {
+    const r = baseRenderer.clone();
+
+    // --- SYMBOL / SHAPE ---
+    const prim = resolvePrimitive(shapeSelect?.value);
+    r.symbol = buildPoint3DSymbol(prim);
+
+    // --- COLOR VV ---
+    let colorVV = r.visualVariables.find((vv) => vv.type === "color");
+    if (!colorVV) {
+      colorVV = { type: "color", field: "Temperature", stops: [] };
+      r.visualVariables.push(colorVV);
+    }
+    colorVV.field = "Temperature";
+    colorVV.stops = [
+      { value: TEMP_MIN, color: startColorPicker?.value || "#4575b4" },
+      { value: TEMP_MID, color: middleColorPicker?.value || "#ffffbf" },
+      { value: TEMP_MAX, color: endColorPicker?.value || "#d73027" },
+    ];
+
+    // --- SIZE VV ---
+    let sizeVV = r.visualVariables.find((vv) => vv.type === "size");
+    if (!sizeVV) {
+      sizeVV = { type: "size", field: "Temperature", valueUnit: "meters", stops: [] };
+      r.visualVariables.push(sizeVV);
+    }
+    const sz = Number(sizeInput?.value) || 40000;
+    sizeVV.field = "Temperature";
+    sizeVV.valueUnit = "meters";
+    sizeVV.stops = [
+      { value: TEMP_MIN, size: sz },
+      { value: TEMP_MAX, size: sz },
+    ];
+
+    return r;
+  }
+
+  // Aplikace všech parametrù na vrstvu
+  function applyAllSymbologyLive() {
     if (!activeLayerForSymbology) return;
 
-    currentRenderer = activeLayerForSymbology.renderer.clone();
+    // 1) Renderer podle UI (vèetnì NOVÉHO tvaru)
+    const newRenderer = buildUpdatedRendererFromUI(activeLayerForSymbology.renderer);
+    activeLayerForSymbology.renderer = newRenderer;
 
-    let fieldName = "Temperature"; 
-    let minDataValue = 265; 
-    let maxDataValue = 289; 
+    // 2) Globální prùhlednost vrstvy
+    const op = Number(transparencyInput?.value);
+    activeLayerForSymbology.opacity = Number.isFinite(op) ? op : 1;
 
-    const currentColourVV = currentRenderer.visualVariables.find(vv => vv.type === "color");
-    if (currentColourVV && currentColourVV.field) {
-        fieldName = currentColourVV.field;
-        if (currentColourVV.stops && currentColourVV.stops.length > 0) {
-            if (currentColourVV.field === "Temperature") { 
-                minDataValue = currentColourVV.stops[0].value;
-                maxDataValue = currentColourVV.stops[currentColourVV.stops.length - 1].value;
-            }
-        }
-    }
-    
-    const defaultMiddleValue = (minDataValue + maxDataValue) / 2;
+    // 3) Z-offsety (lineární mapování Temperature -> offset) pøes Arcade výraz
+    const zMin = Number(minZOffsetInput?.value);
+    const zMax = Number(maxZOffsetInput?.value);
+    const z0 = Number.isFinite(zMin) ? zMin : 0;
+    const z1 = Number.isFinite(zMax) ? zMax : 200000;
 
-    const newColorRampStops = [
-        { color: startColorPicker.value, value: minDataValue },
-        { color: middleColorPicker.value, value: defaultMiddleValue },
-        { color: endColorPicker.value, value: maxDataValue }
-    ];
-    let colorVV = currentRenderer.visualVariables.find(vv => vv.type === "color");
-    if (colorVV) {
-        colorVV.field = fieldName;
-        colorVV.stops = newColorRampStops;
-    } else {
-        currentRenderer.visualVariables.push({
-            type: "color",
-            field: fieldName,
-            stops: newColorRampStops
-        });
-    }
-    updateColorRampPreview(newColorRampStops);
+    const expr =
+      `var t = ($feature.Temperature - ${TEMP_MIN}) / (${TEMP_MAX} - ${TEMP_MIN});` +
+      `return ${z0} + t*(${z1} - ${z0});`;
 
-    const newOpacity = parseFloat(transparencyInput.value);
-    let opacityVV = currentRenderer.visualVariables.find(vv => vv.type === "opacity");
-    if (opacityVV) {
-        opacityVV.field = fieldName;
-        opacityVV.stops = [
-            { value: minDataValue, opacity: newOpacity },
-            { value: maxDataValue, opacity: newOpacity }
-        ];
-    } else {
-        currentRenderer.visualVariables.push({
-            type: "opacity",
-            field: fieldName,
-            stops: [
-                { value: minDataValue, opacity: newOpacity },
-                { value: maxDataValue, opacity: newOpacity }
-            ]
-        });
-    }
-
-    const newSize = parseFloat(sizeInput.value);
-    let sizeVV = currentRenderer.visualVariables.find(vv => vv.type === "size");
-    if (sizeVV) {
-        sizeVV.field = fieldName;
-        sizeVV.stops = [
-            { value: minDataValue, size: newSize },
-            { value: maxDataValue, size: newSize }
-        ];
-    } else {
-        currentRenderer.visualVariables.push({
-            type: "size",
-            field: fieldName,
-            stops: [
-                { value: minDataValue, size: newSize },
-                { value: maxDataValue, size: newSize }
-            ]
-        });
-    }
-    let objectSymbolLayer = currentRenderer.symbol.symbolLayers.find(sl => sl.type === "object");
-      if (!objectSymbolLayer) {
-        objectSymbolLayer = { type: "object", material: { color: "white" } };
-        currentRenderer.symbol.symbolLayers.push(objectSymbolLayer);
-      }
-      
-    const newShape = shapeSelect ? shapeSelect.value : "sphere";
-      objectSymbolLayer.resource = { primitive: newShape };
-    
-    const symbolLayer = currentRenderer.symbol.symbolLayers.getItemAt(0); 
-    if (symbolLayer && symbolLayer.type === "object") {
-        symbolLayer.width = newSize;
-        symbolLayer.depth = newSize;
-        symbolLayer.height = newSize; 
-    }
-
-    const newMinZOffset = parseFloat(minZOffsetInput.value);
-    const newMaxZOffset = parseFloat(maxZOffsetInput.value);
-
-    const dataValueRange = maxDataValue - minDataValue;
-    const heightRange = newMaxZOffset - newMinZOffset;
-
-    let expression = `$feature.${fieldName}`;
-    if (dataValueRange > 0) {
-        const scaleFactor = heightRange / dataValueRange;
-        const baseOffset = newMinZOffset - (minDataValue * scaleFactor);
-        expression = `$feature.${fieldName} * ${scaleFactor} + ${baseOffset}`;
-    } else {
-        expression = `${newMinZOffset}`;
-    }
-
-    activeLayerForSymbology.elevationInfo = {
-        mode: "relative-to-ground",
-        featureExpressionInfo: {
-            expression: expression
-        }
-    };
-
-    activeLayerForSymbology.renderer = currentRenderer;
+    const elev = Object.assign({}, activeLayerForSymbology.elevationInfo || {});
+    elev.mode = "relative-to-ground";
+    elev.featureExpressionInfo = { expression: expr };
+    activeLayerForSymbology.elevationInfo = elev;
   }
 
-  applySymbologyButton.addEventListener("click", applyCurrentSymbology);
+  const safeApplyAllSymbologyLive = () => {
+    if (booting) return; // bìhem fly-in nic neaplikuj do mapy
+    applyAllSymbologyLive();
+  };
+  const applyWithPreviewDebounced = debounce(() => {
+    updateColorRampPreviewFromInputs();
+    if (!booting) applyAllSymbologyLive();
+}, 100);
 
-  view.when().then(function() {
-    return Promise.all([ 
-      euPointCloudLayer.load()
-    ]).then(function() {
-      initializeSymbologyPanel(activeLayerForSymbology);
-      applyCurrentSymbology(); 
+  // -----------------------------
+  // UI: OKAMŽITÉ ZPROVOZNÌNÍ (preview, help, listenery)
+  // -----------------------------
+  // Náhled barevné rampy hned po naètení
+  updateColorRampPreviewFromInputs();
 
-      const initialCamera = view.camera.clone(); 
+  // Listenery UI – registrace IHNED (booting zajistí, že mapu to pøedèasnì nemìní)
+  startColorPicker?.addEventListener("input", () => { updateColorRampPreviewFromInputs(); applyWithPreviewDebounced(); });
+  middleColorPicker?.addEventListener("input", () => { updateColorRampPreviewFromInputs(); applyWithPreviewDebounced(); });
+  endColorPicker?.addEventListener("input", () => { updateColorRampPreviewFromInputs(); applyWithPreviewDebounced(); });
 
-      view.goTo({
-        position: {
-          latitude: initialCamera.position.latitude,
-          longitude: initialCamera.position.longitude,
-          z: 6000000 
+  // ostatní vstupy mùžou volat jen debounced aplikaci
+  transparencyInput?.addEventListener("input", applyWithPreviewDebounced);
+  sizeInput?.addEventListener("input", applyWithPreviewDebounced);
+  minZOffsetInput?.addEventListener("input", applyWithPreviewDebounced);
+  maxZOffsetInput?.addEventListener("input", applyWithPreviewDebounced);
+  shapeSelect?.addEventListener("change", applyWithPreviewDebounced);
+  shapeSelect?.addEventListener("input", applyWithPreviewDebounced);
+
+  // Help – funguje nezávisle na mapì (okamžitì)
+  const openHelp = () => {
+    if (!helpOverlay) return;
+    helpOverlay.style.display = "flex";
+    helpOverlay.setAttribute("aria-hidden", "false");
+  };
+  const closeHelp = () => {
+    if (!helpOverlay) return;
+    helpOverlay.style.display = "none";
+    helpOverlay.setAttribute("aria-hidden", "true");
+  };
+  helpButton?.addEventListener("click", (e) => {
+    e.preventDefault();
+    openHelp();
+  });
+  closeHelpModalBtn?.addEventListener("click", (e) => {
+    e.preventDefault();
+    closeHelp();
+  });
+  helpOverlay?.addEventListener("click", (e) => {
+    if (e.target === helpOverlay) closeHelp();
+  });
+  window.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closeHelp();
+  });
+  helpModal?.addEventListener("click", (e) => e.stopPropagation());
+
+  // -----------------------------
+  // ÚVODNÍ ZOOM + PØEPNUTÍ BOOTU
+  // -----------------------------
+  view.when(async () => {
+    await view.whenLayerView(euPointCloudLayer).catch(() => {});
+    try {
+      await view.goTo(
+        {
+          position: { latitude: 48, longitude: 15, z: 6000000 },
+          tilt: 0,
+          heading: -1,
         },
-        tilt: initialCamera.tilt,
-        heading: initialCamera.heading
-      }, {
-        duration: 5000 
-      }).catch(function(error) {
-        if (error.name != "AbortError") {
-          console.error("Animation Error: ", error);
-        }
-      });
-    });
-  });
-  
-  const legend = new Legend({
-    view: view
-  });
-  
-  const legendExpand = new Expand({
-    view: view,
-    content: legend, 
-    expandIconClass: "esri-icon-legend", 
-    expanded: false, 
-    group: "bottom-left" 
-});
-
-view.ui.add(legendExpand, "bottom-left");
-  
-  function initializeSymbologyPanel(layer) {
-    currentRenderer = layer.renderer ? layer.renderer.clone() : null;
-
-    if (!currentRenderer || !currentRenderer.visualVariables) {
-      symbologyNotSupportedMessage.style.display = "block";
-      symbologyEditorPanel.style.display = "none";
-      return;
-    } else {
-      symbologyNotSupportedMessage.style.display = "none";
-      symbologyEditorPanel.style.display = "block";
+        { duration: 5000 }
+      );
+    } catch (e) {
+      // OK, uživatel mohl pohnout mapou
     }
 
-    const colorVV = currentRenderer.visualVariables.find(vv => vv.type === "color");
-    if (colorVV && colorVV.stops.length === 3) {
-      startColorPicker.value = rgbaToHex(colorVV.stops[0].color);
-      middleColorPicker.value = rgbaToHex(colorVV.stops[1].color);
-      endColorPicker.value = rgbaToHex(colorVV.stops[2].color);
-      updateColorRampPreview(colorVV.stops);
-    } else {
-      startColorPicker.value = "#4575b4";
-      middleColorPicker.value = "#ffffbf";
-      endColorPicker.value = "#d73027";
-      updateColorRampPreview([
-        { value: 265, color: "#4575b4" },
-        { value: 277, color: "#ffffbf" },
-        { value: 289, color: "#d73027" }
-      ]);
-    }
+    // Povolit aplikování zmìn do mapy po doletu
+    booting = false;
 
-    const opacityVV = currentRenderer.visualVariables.find(vv => vv.type === "opacity");
-    if (opacityVV && opacityVV.stops.length > 0) {
-      transparencyInput.value = opacityVV.stops[0].opacity;
-    } else {
-      transparencyInput.value = 1; 
-    }
-
-    const sizeVV = currentRenderer.visualVariables.find(vv => vv.type === "size");
-    if (sizeVV && sizeVV.stops.length > 0) {
-      sizeInput.value = sizeVV.stops[0].size;
-    } else {
-      sizeInput.value = 5; 
-    }
-    
-    const objectSymbolLayer = currentRenderer.symbol.symbolLayers.find(sl => sl.type === "object");
-      if (objectSymbolLayer) {
-        if (shapeSelect && objectSymbolLayer.resource && objectSymbolLayer.resource.primitive) {
-          shapeSelect.value = objectSymbolLayer.resource.primitive;
-        } else if (shapeSelect) {
-          shapeSelect.value = "cylinder"; 
-        }
-      }
-
-    minZOffsetInput.value = 0;
-    maxZOffsetInput.value = 200000; 
-  }
-
-  const helpButton = document.getElementById("helpButton");
-  const helpModalOverlay = document.getElementById("helpModalOverlay");
-  const closeHelpModalButton = document.getElementById("closeHelpModal");
-
-  helpButton.addEventListener("click", function() {
-    helpModalOverlay.style.display = "flex";
+    // Jednorázovì dorovnat stav z UI do mapy
+    applyAllSymbologyLive();
   });
-
-  closeHelpModalButton.addEventListener("click", function() {
-    helpModalOverlay.style.display = "none";
-  });
-
-  helpModalOverlay.addEventListener("click", function(event) {
-    if (event.target === helpModalOverlay) {
-      helpModalOverlay.style.display = "none";
-    }
-  });
-
 });

@@ -16,8 +16,8 @@
         <div class="header-nav-links">
           <a href="horizontal.html" class="nav-link">Horizontal Planes</a>
           <a href="point_cloud.html" class="nav-link">Point Cloud</a>
-          <a href="3D_surface.html" class="nav-link">3D Surface</a>
-          <a href="vertical.html" class="nav-link active-nav-link">Vertical Planes</a>
+          <a href="3D_surface.html" class="nav-link active-nav-link">3D Surface</a>
+          <a href="vertical.html" class="nav-link">Vertical Planes</a>
           <a href="3D_graduated.html" class="nav-link">3D Graduated Symbols</a>
           <a href="prism.html" class="nav-link">Prism Map</a>
           <a href="voxels.html" class="nav-link">Voxels</a>
@@ -29,39 +29,21 @@
     <div id="viewDiv"></div>
 
     <div id="symbologyEditorPanel" class="panel">
-      <div class="panel-header">
-        </div>
+      <div class="panel-header"></div>
       <div class="panel-content">
-        <h3 id="symbologyPanelTitle">Edit Symbology: Vertical Planes</h3>
-        <div id="symbologyControls">
-          <h2>Color Ramp</h2>
-          <div class="color-pickers-wrapper">
-            <input type="color" id="startColorPicker" value="#4575b4">
-            <input type="color" id="middleColorPicker" value="#ffffbf">
-            <input type="color" id="endColorPicker" value="#d73027">
-          </div>
-          <div id="colorRampPreview"></div>
-          <hr>
+        <h3 id="symbologyPanelTitle">Edit Symbology: 3D Surface</h3>
 
-          <h2>Transparency</h2>
-          <input type="range" id="transparencyInput" value="1" min="0" max="1" step="0.01"><br>
-          <hr>
-
-          <h2>Extrusion</h2>
-          <label for="minZOffsetInput">Base Height:</label>
-          <input type="number" id="minZOffsetInput" value="0" min="-100000" step="1000"><br>
-          <label for="maxZOffsetInput">Extrusion:</label>
-          <input type="number" id="maxZOffsetInput" value="200000" min="-100000" step="1000"><br>
-          <hr>
-
-          <h2>Height (Elevation)</h2>
-          <label for="heightAboveGroundInput">Height Above Ground (m):</label>
-          <input type="number" id="heightAboveGroundInput" value="0" step="1000" min="-1000000" max="1000000"><br>
+        <h2>Color Ramp</h2>
+        <div class="color-pickers-wrapper">
+          <input type="color" id="startColorPicker" value="#4575b4">
+          <input type="color" id="middleColorPicker" value="#ffffbf">
+          <input type="color" id="endColorPicker" value="#d73027">
         </div>
-        <div id="symbologyNotSupportedMessage" style="display:none;">
-          Symbology editing is not supported for this layer type.
-        </div>
-      </div>
+        <div id="colorRampPreview"></div>
+        <hr>
+
+        <h2>Transparency</h2>
+        <input type="range" id="transparencyInput" value="1" min="0" max="1" step="0.01"><br>
     </div>
 
     <div id="helpModalOverlay" class="modal-overlay">
@@ -80,6 +62,6 @@
       </div>
     </div>
 
-    <script src="verticalJS.js"></script>
+    <script src="3D_surfaceJS.js"></script>
   </body>
 </html>

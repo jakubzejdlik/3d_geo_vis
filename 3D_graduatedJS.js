@@ -7,429 +7,169 @@ document.addEventListener("DOMContentLoaded", function() {
     "esri/widgets/BasemapGallery",
     "esri/widgets/Expand",
     "esri/widgets/Legend",
-    "esri/Color"
-  ], function(Map, SceneView, FeatureLayer, Home, BasemapGallery, Expand, Legend, Color) {
+    "esri/symbols/ObjectSymbol3DLayer",
+    "esri/symbols/PointSymbol3D"
+  ], function(Map, SceneView, FeatureLayer, Home, BasemapGallery, Expand, Legend, ObjectSymbol3DLayer, PointSymbol3D) {
 
-    const map = new Map({
-      basemap: "topo-vector",
-      ground: "world-elevation"
-    });
+    const map = new Map({ basemap: "topo-vector", ground: "world-elevation" });
 
     const euGraduatedSymbolsLayer = new FeatureLayer({
       url: "https://services1.arcgis.com/AGrMjSBR7fxJYLfU/arcgis/rest/services/EU_3D_graduated/FeatureServer/0",
-      outFields: ["*"],
-      visible: true,
-      title: "3D Graduated Symbols",
-      popupTemplate: {
-        title: "{NAME}",
-        content: "Temperature: {Temperature}<br>"
-      },
-        queryFormat: "json",
-        labelingInfo: [{
-          labelExpressionInfo: {
-            expression: "$feature.NAME"
-          },
-          symbol: {
-            type: "label-3d", 
-            symbolLayers: [{
-              type: "text",
-              material: { color: "#646464" },
-              size: 10, // Velikost písma
-              halo: { // Ohranièení textu pro lepší èitelnost
-                color: "white",
-                size: 1
-              },
-              font: {
-                weight: "bold" // Tuèné písmo
-              }
-            }]
-          }
-        }],
+      outFields: ["*"], visible: true, title: "3D Graduated Symbols",
+      popupTemplate: { title: "{NAME}", content: "Temperature: {Temperature}<br>" },
+      labelingInfo: [{
+        labelExpressionInfo: { expression: "$feature.NAME" },
+        symbol: { type: "label-3d", symbolLayers: [{ type: "text", material: { color: "#646464" }, size: 10, halo: { color: "white", size: 1 }, font: { weight: "bold" } }] }
+      }],
       renderer: {
         type: "simple",
-        symbol: {
-          type: "point-3d",
-          symbolLayers: [{
-            type: "object",
-            resource: { primitive: "cylinder" },
-            material: { color: "white" },
-            width: 80000
-          }]
-        },
+        symbol: { type: "point-3d", symbolLayers: [{ type: "object", resource: { primitive: "cylinder" }, material: { color: "white" }, width: 80000 }] },
         visualVariables: [
-          {
-            type: "color",
-            field: "Temperature",
-            stops: [
-              { value: 269, color: "#4575b4" },
-              { value: 277, color: "#ffffbf" },
-              { value: 286, color: "#d73027" }
-            ]
-          },
-          {
-            type: "opacity",
-            field: "Temperature",
-            stops: [
-              { value: 269, opacity: 1 },
-              { value: 288, opacity: 1 }
-            ]
-          },
-          {
-            type: "size", 
-            field: "Temperature",
-            axis: "height",
-            stops: [
-              { value: 269, size: 0 },
-              { value: 286, size: 500000 }
-            ]
-          },
-          {
-            type: "size",
-            axis: "width-and-depth",
-            useSymbolValue: true,
-          },
+          { type: "color", field: "Temperature",
+            stops: [{ value: 269, color: "#4575b4" }, { value: 277, color: "#ffffbf" }, { value: 286, color: "#d73027" }] },
+          { type: "opacity", field: "Temperature", stops: [{ value: 269, opacity: 1 }, { value: 288, opacity: 1 }] },
+          { type: "size", field: "Temperature", axis: "height", stops: [{ value: 269, size: 0 }, { value: 286, size: 500000 }] },
+          { type: "size", axis: "width-and-depth", useSymbolValue: true }
         ]
       },
-      elevationInfo: {
-        mode: "relative-to-ground",
-        offset: 0
-      }
+      elevationInfo: { mode: "relative-to-ground", offset: 0 }
     });
 
-    map.addMany([euGraduatedSymbolsLayer]);
+    map.add(euGraduatedSymbolsLayer);
 
     const view = new SceneView({
-      container: "viewDiv",
-      map: map,
-      camera: {
-        position: {
-          latitude: 48,
-          longitude: 15,
-          z: 15000000
-        },
-        tilt: 0,
-        heading: -1
-      },
-      constraints: {
-        rotationEnabled: true
-      }
+      container: "viewDiv", map,
+      camera: { position: { latitude: 48, longitude: 15, z: 15000000 }, tilt: 0, heading: -1 },
+      constraints: { rotationEnabled: true },
+      qualityProfile: "high"
     });
 
-    const symbologyEditorPanel = document.getElementById("symbologyEditorPanel");
+    // Widgets
+    view.ui.add(new Home({ view }), "top-left");
+    const bg = new BasemapGallery({ view });
+    view.ui.add(new Expand({ view, content: bg, expandIconClass: "esri-icon-basemap" }), "top-left");
+    const legend = new Legend({ view, layerInfos: [{ layer: euGraduatedSymbolsLayer, title: "3D Graduated Symbols" }] });
+    view.ui.add(new Expand({ view, content: legend, expandIconClass: "esri-icon-legend" }), "bottom-left");
+
+    // UI
     const startColorPicker = document.getElementById("startColorPicker");
     const middleColorPicker = document.getElementById("middleColorPicker");
     const endColorPicker = document.getElementById("endColorPicker");
     const transparencyInput = document.getElementById("transparencyInput");
     const minZOffsetInput = document.getElementById("minZOffsetInput");
-    const maxZOffsetInput = document.getElementById("maxZOffsetInput"); 
-    const applySymbologyButton = document.getElementById("applySymbologyButton");
+    const maxZOffsetInput = document.getElementById("maxZOffsetInput");
     const colorRampPreview = document.getElementById("colorRampPreview");
-    const symbologyNotSupportedMessage = document.getElementById("symbologyNotSupportedMessage");
     const heightAboveGroundInput = document.getElementById("heightAboveGroundInput");
-    
-    // NOVÉ REFERENCE NA DOM ELEMENTY
     const diameterInput = document.getElementById("diameterInput");
     const shapeSelect = document.getElementById("shapeSelect");
 
-    let activeLayerForSymbology = euGraduatedSymbolsLayer;
-    let currentRenderer;
+    // Help
+    const helpButton = document.getElementById("helpButton");
+    const helpOverlay = document.getElementById("helpModalOverlay");
+    const helpModal = document.getElementById("helpModal");
+    const closeHelpModalBtn = document.getElementById("closeHelpModal");
 
-    function rgbaToHex(rgba) {
-      if (rgba && typeof rgba.toHex === 'function') {
-        return rgba.toHex();
-      }
-      const parts = String(rgba).match(/^rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*(\d+\.?\d*))?\)$/);
-      if (!parts) return "#000000";
-
-      const r = parseInt(parts[1]).toString(16).padStart(2, '0');
-      const g = parseInt(parts[2]).toString(16).padStart(2, '0');
-      const b = parseInt(parts[3]).toString(16).padStart(2, '0');
-      return `#${r}${g}${b}`;
-    }
+    // Helpers
+    const TEMP_MIN = 269, TEMP_MID = 277, TEMP_MAX = 286;
+    let booting = true;
 
     function updateColorRampPreview(stops) {
       if (!colorRampPreview) return;
-      let gradientCss = "linear-gradient(to right, ";
-      stops.forEach((stop, index) => {
-        const colorValue = typeof stop.color === 'object' && stop.color.toHex ? stop.color.toHex() : stop.color;
-        gradientCss += colorValue;
-        if (index < stops.length - 1) {
-          gradientCss += ", ";
-        }
-      });
-      gradientCss += ")";
-      colorRampPreview.style.background = gradientCss;
+      const colors = stops.map(s => s.color && s.color.toHex ? s.color.toHex() : s.color);
+      colorRampPreview.style.background = `linear-gradient(to right, ${colors.join(", ")})`;
     }
-
-    function updateColorRamp() {
+    function updatePreviewFromInputs() {
       updateColorRampPreview([
-        { value: 269, color: startColorPicker ? startColorPicker.value : "#4575b4" },
-        { value: 277, color: middleColorPicker ? middleColorPicker.value : "#ffffbf" },
-        { value: 286, color: endColorPicker ? endColorPicker.value : "#d73027" }
+        { value: TEMP_MIN, color: startColorPicker?.value || "#4575b4" },
+        { value: TEMP_MID, color: middleColorPicker?.value || "#ffffbf" },
+        { value: TEMP_MAX, color: endColorPicker?.value || "#d73027" }
       ]);
     }
+    function debounce(fn, d = 100) { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), d); }; }
 
-    if (startColorPicker) {
-      startColorPicker.addEventListener("input", updateColorRamp);
+    function buildPoint3DSymbol(primitive, diameter) {
+      const obj = new ObjectSymbol3DLayer({
+        resource: { primitive },
+        material: { color: "white" },
+        width: diameter,
+        depth: diameter
+      });
+      return new PointSymbol3D({ symbolLayers: [obj] });
     }
 
-    if (middleColorPicker) {
-      middleColorPicker.addEventListener("input", updateColorRamp);
-    }
+    function buildRenderer(base) {
+      const r = base.clone();
+      // tvar + prùmìr
+      const prim = String(shapeSelect?.value || "cylinder").toLowerCase();
+      const diam = Number(diameterInput?.value) || 80000;
+      r.symbol = buildPoint3DSymbol(prim, diam);
 
-    if (endColorPicker) {
-      endColorPicker.addEventListener("input", updateColorRamp);
-    }
-
-    function applyCurrentSymbology() {
-      if (!activeLayerForSymbology) return;
-
-      currentRenderer = activeLayerForSymbology.renderer.clone();
-
-      let fieldName = "Temperature";
-      let minDataValue = 269;
-      let maxDataValue = 286;
-
-      const currentColourVV = currentRenderer.visualVariables.find(vv => vv.type === "color");
-      if (currentColourVV && currentColourVV.field) {
-        fieldName = currentColourVV.field;
-        if (currentColourVV.stops && currentColourVV.stops.length > 0) {
-          if (currentColourVV.field === "Temperature") {
-            minDataValue = currentColourVV.stops[0].value;
-            maxDataValue = currentColourVV.stops[currentColourVV.stops.length - 1].value;
-          }
-        }
-      }
-
-      const defaultMiddleValue = (minDataValue + maxDataValue) / 2;
-
-      const newColorRampStops = [
-        { color: new Color(startColorPicker ? startColorPicker.value : "#4575b4"), value: minDataValue },
-        { color: new Color(middleColorPicker ? middleColorPicker.value : "#ffffbf"), value: defaultMiddleValue },
-        { color: new Color(endColorPicker ? endColorPicker.value : "#d73027"), value: maxDataValue }
+      // barvy
+      let colorVV = r.visualVariables.find(v => v.type === "color");
+      if (!colorVV) { colorVV = { type: "color", field: "Temperature", stops: [] }; r.visualVariables.push(colorVV); }
+      colorVV.field = "Temperature";
+      colorVV.stops = [
+        { value: TEMP_MIN, color: startColorPicker?.value || "#4575b4" },
+        { value: TEMP_MID, color: middleColorPicker?.value || "#ffffbf" },
+        { value: TEMP_MAX, color: endColorPicker?.value || "#d73027" }
       ];
-      let colorVV = currentRenderer.visualVariables.find(vv => vv.type === "color");
-      if (colorVV) {
-        colorVV.field = fieldName;
-        colorVV.stops = newColorRampStops;
-      } else {
-        currentRenderer.visualVariables.push({
-          type: "color",
-          field: fieldName,
-          stops: newColorRampStops
-        });
-      }
-      updateColorRampPreview(newColorRampStops);
 
-      const newOpacity = transparencyInput ? parseFloat(transparencyInput.value) : 1;
-      let opacityVV = currentRenderer.visualVariables.find(vv => vv.type === "opacity");
-      if (opacityVV) {
-        opacityVV.field = fieldName;
-        opacityVV.stops = [
-          { value: minDataValue, opacity: newOpacity },
-          { value: maxDataValue, opacity: newOpacity }
-        ];
-      } else {
-        currentRenderer.visualVariables.push({
-          type: "opacity",
-          field: fieldName,
-          stops: [
-            { value: minDataValue, opacity: newOpacity },
-            { value: maxDataValue, opacity: newOpacity }
-          ]
-        });
-      }
+      // výška
+      let sizeH = r.visualVariables.find(v => v.type === "size" && v.axis === "height");
+      if (!sizeH) { sizeH = { type: "size", axis: "height", field: "Temperature", stops: [] }; r.visualVariables.push(sizeH); }
+      const minH = Number(minZOffsetInput?.value) || 0;
+      const maxH = Number(maxZOffsetInput?.value) || 500000;
+      sizeH.field = "Temperature";
+      sizeH.stops = [{ value: TEMP_MIN, size: minH }, { value: TEMP_MAX, size: maxH }];
 
-      const minColumnHeight = minZOffsetInput ? parseFloat(minZOffsetInput.value) : 0;
-      const maxColumnHeight = maxZOffsetInput ? parseFloat(maxZOffsetInput.value) : 500000;
-      let sizeVV = currentRenderer.visualVariables.find(vv => vv.type === "size" && vv.axis === "height");
-      if (sizeVV) {
-        sizeVV.field = fieldName;
-        sizeVV.stops = [
-          { value: minDataValue, size: minColumnHeight },
-          { value: maxDataValue, size: maxColumnHeight }
-        ];
-      } else {
-        currentRenderer.visualVariables.push({
-          type: "size",
-          axis: "height",
-          field: fieldName,
-          stops: [
-            { value: minDataValue, size: minColumnHeight },
-            { value: maxDataValue, size: maxColumnHeight }
-          ]
-        });
-      }
-
-      let objectSymbolLayer = currentRenderer.symbol.symbolLayers.find(sl => sl.type === "object");
-      if (!objectSymbolLayer) {
-        objectSymbolLayer = { type: "object", material: { color: "white" } };
-        currentRenderer.symbol.symbolLayers.push(objectSymbolLayer);
-      }
-
-      const newShape = shapeSelect ? shapeSelect.value : "cylinder";
-      objectSymbolLayer.resource = { primitive: newShape };
-
-      const newDiameter = diameterInput ? parseFloat(diameterInput.value) : 80000;
-      objectSymbolLayer.width = newDiameter;
-      objectSymbolLayer.depth = newDiameter;
-
-      // Zajištìní, že width a depth zùstanou pevné (øešení od uživatele)
-      let fixedWidthDepthVV = currentRenderer.visualVariables.find(vv => vv.type === "size" && vv.axis === "width-and-depth" && vv.useSymbolValue === true);
-      if (!fixedWidthDepthVV) {
-          currentRenderer.visualVariables.push({
-              type: "size",
-              axis: "width-and-depth",
-              useSymbolValue: true,
-              field: fieldName 
-          });
-      }
-
-      const heightAboveGround = heightAboveGroundInput ? parseFloat(heightAboveGroundInput.value) : 0;
-
-      activeLayerForSymbology.elevationInfo = {
-        mode: "relative-to-ground",
-        offset: heightAboveGround 
-      };
-
-      activeLayerForSymbology.renderer = currentRenderer;
+      return r;
     }
 
-    if (applySymbologyButton) {
-      applySymbologyButton.addEventListener("click", applyCurrentSymbology);
+    function applyAll() {
+      if (booting) return;
+      euGraduatedSymbolsLayer.renderer = buildRenderer(euGraduatedSymbolsLayer.renderer);
+      const op = Number(transparencyInput?.value);
+      euGraduatedSymbolsLayer.opacity = Number.isFinite(op) ? op : 1;
+      const offset = Number(heightAboveGroundInput?.value);
+      euGraduatedSymbolsLayer.elevationInfo = { mode: "relative-to-ground", offset: Number.isFinite(offset) ? offset : 0 };
     }
 
-    view.when().then(function() {
-      return Promise.all([
-        euGraduatedSymbolsLayer.load()
-      ]).then(function() {
-        initializeSymbologyPanel(activeLayerForSymbology);
-        applyCurrentSymbology();
+    const applyWithPreviewDebounced = debounce(() => {
+      updatePreviewFromInputs();   // (u nìkterých souborù se funkce jmenuje updatePreviewFromInputs)
+      if (!booting) applyAll();
+    }, 100);
 
-        const initialCamera = view.camera.clone();
 
-        view.goTo({
-          position: {
-            latitude: initialCamera.position.latitude,
-            longitude: initialCamera.position.longitude,
-            z: 6000000
-          },
-          tilt: initialCamera.tilt,
-          heading: initialCamera.heading
-        }, {
-          duration: 5000
-        }).catch(function(error) {
-          if (error.name != "AbortError") {
-            console.error("Animation Error: ", error);
-          }
-        });
-      });
+    // UI: preview + help hned
+    updatePreviewFromInputs();
+    const openHelp = () => { if (!helpOverlay) return; helpOverlay.style.display = "flex"; helpOverlay.setAttribute("aria-hidden", "false"); };
+    const closeHelp = () => { if (!helpOverlay) return; helpOverlay.style.display = "none"; helpOverlay.setAttribute("aria-hidden", "true"); };
+    helpButton?.addEventListener("click", e => { e.preventDefault(); openHelp(); });
+    closeHelpModalBtn?.addEventListener("click", e => { e.preventDefault(); closeHelp(); });
+    helpOverlay?.addEventListener("click", e => { if (e.target === helpOverlay) closeHelp(); });
+    window.addEventListener("keydown", e => { if (e.key === "Escape") closeHelp(); });
+    helpModal?.addEventListener("click", e => e.stopPropagation());
+
+    // Listeners hned
+    startColorPicker?.addEventListener("input", () => { updatePreviewFromInputs(); applyWithPreviewDebounced(); });
+    middleColorPicker?.addEventListener("input", () => { updatePreviewFromInputs(); applyWithPreviewDebounced(); });
+    endColorPicker?.addEventListener("input", () => { updatePreviewFromInputs(); applyWithPreviewDebounced(); });
+    transparencyInput?.addEventListener("input", applyWithPreviewDebounced);
+    minZOffsetInput?.addEventListener("input", applyWithPreviewDebounced);
+    maxZOffsetInput?.addEventListener("input", applyWithPreviewDebounced);
+    heightAboveGroundInput?.addEventListener("input", applyWithPreviewDebounced);
+    diameterInput?.addEventListener("input", applyWithPreviewDebounced);
+    shapeSelect?.addEventListener("input", applyWithPreviewDebounced);
+    shapeSelect?.addEventListener("change", applyWithPreviewDebounced);
+
+    // Boot
+    view.when(async () => {
+      await view.whenLayerView(euGraduatedSymbolsLayer).catch(() => {});
+      try {
+        await view.goTo({ position: { latitude: 48, longitude: 15, z: 6000000 }, tilt: 0, heading: -1 }, { duration: 5000 });
+      } catch (e) {}
+      booting = false;
+      applyAll();
     });
-
-    const legend = new Legend({
-      view: view
-    });
-
-    const legendExpand = new Expand({
-      view: view,
-      content: legend,
-      expandIconClass: "esri-icon-legend",
-      expanded: false,
-      group: "bottom-left"
-    });
-
-    view.ui.add(legendExpand, "bottom-left");
-
-    function initializeSymbologyPanel(layer) {
-      currentRenderer = layer.renderer ? layer.renderer.clone() : null;
-
-      if (!currentRenderer || !currentRenderer.visualVariables) {
-        if (symbologyNotSupportedMessage) symbologyNotSupportedMessage.style.display = "block";
-        if (symbologyEditorPanel) symbologyEditorPanel.style.display = "none";
-        return;
-      } else {
-        if (symbologyNotSupportedMessage) symbologyNotSupportedMessage.style.display = "none";
-        if (symbologyEditorPanel) symbologyEditorPanel.style.display = "block";
-      }
-
-      const colorVV = currentRenderer.visualVariables.find(vv => vv.type === "color");
-      if (colorVV && colorVV.stops.length === 3) {
-        if (startColorPicker) startColorPicker.value = rgbaToHex(colorVV.stops[0].color);
-        if (middleColorPicker) middleColorPicker.value = rgbaToHex(colorVV.stops[1].color);
-        if (endColorPicker) endColorPicker.value = rgbaToHex(colorVV.stops[2].color);
-        updateColorRampPreview(colorVV.stops);
-      } else {
-        if (startColorPicker) startColorPicker.value = "#4575b4";
-        if (middleColorPicker) middleColorPicker.value = "#ffffbf";
-        if (endColorPicker) endColorPicker.value = "#d73027";
-        updateColorRampPreview([
-          { value: 269, color: "#4575b4" },
-          { value: 277, color: "#ffffbf" },
-          { value: 286, color: "#d73027" }
-        ]);
-      }
-
-      const opacityVV = currentRenderer.visualVariables.find(vv => vv.type === "opacity");
-      if (opacityVV && opacityVV.stops.length > 0) {
-        if (transparencyInput) transparencyInput.value = opacityVV.stops[0].opacity;
-      } else {
-        if (transparencyInput) transparencyInput.value = 1;
-      }
-
-      const sizeVV = currentRenderer.visualVariables.find(vv => vv.type === "size" && vv.axis === "height"); // Specifikujeme axis: "height"
-      if (sizeVV && sizeVV.stops.length > 0) {
-        if (minZOffsetInput) minZOffsetInput.value = sizeVV.stops[0].size;
-        if (maxZOffsetInput) maxZOffsetInput.value = sizeVV.stops[sizeVV.stops.length - 1].size;
-      } else {
-        if (minZOffsetInput) minZOffsetInput.value = 0;
-        if (maxZOffsetInput) maxZOffsetInput.value = 500000;
-      }
-
-      const objectSymbolLayer = currentRenderer.symbol.symbolLayers.find(sl => sl.type === "object");
-      if (objectSymbolLayer) {
-        if (diameterInput && typeof objectSymbolLayer.width === 'number') {
-          diameterInput.value = objectSymbolLayer.width;
-        } else if (diameterInput) {
-          diameterInput.value = 80000; 
-        }
-
-        if (shapeSelect && objectSymbolLayer.resource && objectSymbolLayer.resource.primitive) {
-          shapeSelect.value = objectSymbolLayer.resource.primitive;
-        } else if (shapeSelect) {
-          shapeSelect.value = "cylinder"; 
-        }
-      }
-
-
-      if (heightAboveGroundInput && layer.elevationInfo && typeof layer.elevationInfo.offset === 'number') {
-        heightAboveGroundInput.value = layer.elevationInfo.offset;
-      } else if (heightAboveGroundInput) {
-        heightAboveGroundInput.value = 0; 
-      }
-    }
-
-    const helpButton = document.getElementById("helpButton");
-    const helpModalOverlay = document.getElementById("helpModalOverlay");
-    const closeHelpModalButton = document.getElementById("closeHelpModal");
-
-    if (helpButton) {
-      helpButton.addEventListener("click", function() {
-        if (helpModalOverlay) helpModalOverlay.style.display = "flex";
-      });
-    }
-
-    if (closeHelpModalButton) {
-      closeHelpModalButton.addEventListener("click", function() {
-        if (helpModalOverlay) helpModalOverlay.style.display = "none";
-      });
-    }
-
-    if (helpModalOverlay) {
-      helpModalOverlay.addEventListener("click", function(event) {
-        if (event.target === helpModalOverlay) {
-          helpModalOverlay.style.display = "none";
-        }
-      });
-    }
   });
 });

@@ -1,328 +1,132 @@
-require([
-  "esri/Map",
-  "esri/views/SceneView",
-  "esri/layers/FeatureLayer",
-  "esri/widgets/Home",
-  "esri/widgets/BasemapGallery",
-  "esri/widgets/Expand",
-  "esri/widgets/Legend",
-  "esri/Color"
-], function(Map, SceneView, FeatureLayer, Home, BasemapGallery, Expand, Legend, Color) { 
+document.addEventListener("DOMContentLoaded", function() {
+  require([
+    "esri/Map",
+    "esri/views/SceneView",
+    "esri/layers/FeatureLayer",
+    "esri/widgets/Home",
+    "esri/widgets/BasemapGallery",
+    "esri/widgets/Expand",
+    "esri/widgets/Legend"
+  ], function(Map, SceneView, FeatureLayer, Home, BasemapGallery, Expand, Legend) {
 
-  const symbologyEditorPanel = document.getElementById("symbologyEditorPanel");
-  const startColorPicker = document.getElementById("startColorPicker");
-  const middleColorPicker = document.getElementById("middleColorPicker");
-  const endColorPicker = document.getElementById("endColorPicker");
-  const transparencyInput = document.getElementById("transparencyInput");
-  const planeHeightInput = document.getElementById("planeHeightInput");
-  const applySymbologyButton = document.getElementById("applySymbologyButton");
-  const colorRampPreview = document.getElementById("colorRampPreview");
-  const symbologyNotSupportedMessage = document.getElementById("symbologyNotSupportedMessage");
+    const map = new Map({ basemap: "topo-vector", ground: "world-elevation" });
 
-  const map = new Map({
-    basemap: "topo-vector",
-    ground: "world-elevation"
-  });
-
-  const euHorizontalLayer = new FeatureLayer({
-    url: "https://services1.arcgis.com/AGrMjSBR7fxJYLfU/arcgis/rest/services/EU_horizontal/FeatureServer/0",
-    outFields: ["*"],
-    visible: true,
-    title: "EU Horizontal Planes",
-    popupTemplate: {
-      title: "Temperature",
-      content: "Value: {Temperature}"
-    },
-      queryFormat: "json",
-      elevationInfo: {
-          mode: "relative-to-ground", 
-          offset: 300000
-      },
-    renderer: {
-      type: "simple",
-      symbol: {
-        type: "polygon-3d",
-        symbolLayers: [{
-          type: "fill", 
-            material: { color: "white" }
-        }]
-      },
-      visualVariables: [
-        {
-          type: "color",
-          field: "Temperature",
-          stops: [
-            { value: 266, color: "#4575b4" },
-            { value: 277, color: "#ffffbf" },
-            { value: 286, color: "#d73027" }
-          ]
-        },
-        {
-          type: "opacity",
-          field: "Temperature",
-          stops: [
-            { value: 266, opacity: 1 },
-            { value: 286, opacity: 1 }
-          ]
-        }
-      ]
-    }
-  });
-
-  map.addMany([euHorizontalLayer]);
-
-  const view = new SceneView({
-    container: "viewDiv",
-    map: map,
-    camera: {
-      position: {
-        latitude: 48,       
-        longitude: 15,      
-        z: 15000000        
-      },
-      tilt: 0,
-      heading: -1
-    },
-    constraints: {
-      rotationEnabled: true
-    }
-  });
-  
-  const homeWidget = new Home({
-    view: view
-  });
-  view.ui.add(homeWidget, "top-left");
-
-  const basemapGallery = new BasemapGallery({
-    view: view
-  });
-
-  const basemapGalleryExpand = new Expand({
-    view: view,
-    content: basemapGallery,
-    expandIconClass: "esri-icon-basemap"
-  });
-  view.ui.add(basemapGalleryExpand, "top-left");
-
-  let activeLayerForSymbology = euHorizontalLayer; 
-  let currentRenderer; 
-
-  function rgbaToHex(rgba) {
-    if (rgba && typeof rgba.toHex === 'function') {
-        return rgba.toHex();
-    }
-    const parts = rgba.match(/^rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*(\d+\.?\d*))?\)$/);
-    if (!parts) return "#000000"; 
-
-    const r = parseInt(parts[1]).toString(16).padStart(2, '0');
-    const g = parseInt(parts[2]).toString(16).padStart(2, '0');
-    const b = parseInt(parts[3]).toString(16).padStart(2, '0');
-    return `#${r}${g}${b}`;
-  }
-
-  function updateColorRampPreview(stops) {
-    let gradientCss = "linear-gradient(to right, ";
-    stops.forEach((stop, index) => {
-        const colorValue = typeof stop.color === 'object' && stop.color.toHex ? stop.color.toHex() : stop.color;
-        gradientCss += colorValue;
-        if (index < stops.length - 1) {
-            gradientCss += ", ";
-        }
+    const euHorizontalLayer = new FeatureLayer({
+      url: "https://services1.arcgis.com/AGrMjSBR7fxJYLfU/arcgis/rest/services/EU_horizontal/FeatureServer/0",
+      outFields: ["*"], visible: true, title: "EU Horizontal Planes",
+      popupTemplate: { title: "Temperature", content: "Value: {Temperature}" },
+      elevationInfo: { mode: "relative-to-ground", offset: 300000 },
+      renderer: {
+        type: "simple",
+        symbol: { type: "polygon-3d", symbolLayers: [{ type: "fill", material: { color: "white" } }] },
+        visualVariables: [
+          { type: "color", field: "Temperature",
+            stops: [{ value: 266, color: "#4575b4" }, { value: 277, color: "#ffffbf" }, { value: 286, color: "#d73027" }] },
+          { type: "opacity", field: "Temperature", stops: [{ value: 266, opacity: 1 }, { value: 286, opacity: 1 }] }
+        ]
+      }
     });
-    gradientCss += ")";
-    colorRampPreview.style.background = gradientCss;
-  }
-  
-  function updateColorRamp() {
-    updateColorRampPreview([
-      { value: 266, color: startColorPicker.value },
-      { value: 277, color: middleColorPicker.value },
-      { value: 286, color: endColorPicker.value }
-    ]);
-  }
 
-  if (startColorPicker) {
-    startColorPicker.addEventListener("input", updateColorRamp);
-  }
+    map.add(euHorizontalLayer);
 
-  if (middleColorPicker) {
-    middleColorPicker.addEventListener("input", updateColorRamp);
-  }
-
-  if (endColorPicker) {
-    endColorPicker.addEventListener("input", updateColorRamp);
-  }
-
-  function applyCurrentSymbology() {
-    if (!activeLayerForSymbology) return;
-
-    currentRenderer = activeLayerForSymbology.renderer.clone();
-
-    let fieldName = "Temperature"; 
-    let minDataValue = 266; 
-    let maxDataValue = 286; 
-
-    const currentColourVV = currentRenderer.visualVariables.find(vv => vv.type === "color");
-    if (currentColourVV && currentColourVV.field) {
-        fieldName = currentColourVV.field;
-        if (currentColourVV.stops && currentColourVV.stops.length > 0) {
-            if (currentColourVV.field === "Temperature") { 
-                minDataValue = currentColourVV.stops[0].value;
-                maxDataValue = currentColourVV.stops[currentColourVV.stops.length - 1].value;
-            }
-        }
-    }
-    
-    const defaultMiddleValue = (minDataValue + maxDataValue) / 2;
-
-    const newColorRampStops = [
-        { color: startColorPicker.value, value: minDataValue },
-        { color: middleColorPicker.value, value: defaultMiddleValue },
-        { color: endColorPicker.value, value: maxDataValue }
-    ];
-    let colorVV = currentRenderer.visualVariables.find(vv => vv.type === "color");
-    if (colorVV) {
-        colorVV.field = fieldName;
-        colorVV.stops = newColorRampStops;
-    } else {
-        currentRenderer.visualVariables.push({
-            type: "color",
-            field: fieldName,
-            stops: newColorRampStops
-        });
-    }
-    updateColorRampPreview(newColorRampStops);
-
-    const newOpacity = parseFloat(transparencyInput.value);
-    let opacityVV = currentRenderer.visualVariables.find(vv => vv.type === "opacity");
-    if (opacityVV) {
-        opacityVV.field = fieldName;
-        opacityVV.stops = [
-            { value: minDataValue, opacity: newOpacity },
-            { value: maxDataValue, opacity: newOpacity }
-        ];
-    } else {
-        currentRenderer.visualVariables.push({
-            type: "opacity",
-            field: fieldName,
-            stops: [
-                { value: minDataValue, opacity: newOpacity },
-                { value: maxDataValue, opacity: newOpacity }
-            ]
-        });
-    }
-
-    const newPlaneHeight = parseFloat(planeHeightInput.value);
-    activeLayerForSymbology.elevationInfo = {
-        mode: "relative-to-ground", 
-        offset: newPlaneHeight 
-    };
-
-    activeLayerForSymbology.renderer = currentRenderer;
-  }
-
-  applySymbologyButton.addEventListener("click", applyCurrentSymbology);
-
-  view.when().then(function() {
-    return Promise.all([ 
-      euHorizontalLayer.load()
-    ]).then(function() {
-      initializeSymbologyPanel(activeLayerForSymbology);
-      applyCurrentSymbology(); 
-
-      const initialCamera = view.camera.clone(); 
-
-      view.goTo({
-        position: {
-          latitude: initialCamera.position.latitude,
-          longitude: initialCamera.position.longitude,
-          z: 6000000 
-        },
-        tilt: initialCamera.tilt,
-        heading: initialCamera.heading
-      }, {
-        duration: 5000 
-      }).catch(function(error) {
-        if (error.name != "AbortError") {
-          console.error("Animation Error: ", error);
-        }
-      });
+    const view = new SceneView({
+      container: "viewDiv", map,
+      camera: { position: { latitude: 48, longitude: 15, z: 15000000 }, tilt: 0, heading: -1 },
+      constraints: { rotationEnabled: true },
+      qualityProfile: "high"
     });
-  });
-  
-  const legend = new Legend({
-    view: view
-  });
-  
-  const legendExpand = new Expand({
-    view: view,
-    content: legend, 
-    expandIconClass: "esri-icon-legend", 
-    expanded: false, 
-    group: "bottom-left" 
-});
 
-view.ui.add(legendExpand, "bottom-left");
-  
-  function initializeSymbologyPanel(layer) {
-    currentRenderer = layer.renderer ? layer.renderer.clone() : null;
+    // Widgets
+    view.ui.add(new Home({ view }), "top-left");
+    const bg = new BasemapGallery({ view });
+    view.ui.add(new Expand({ view, content: bg, expandIconClass: "esri-icon-basemap" }), "top-left");
+    const legend = new Legend({ view, layerInfos: [{ layer: euHorizontalLayer, title: "Horizontal Planes" }] });
+    view.ui.add(new Expand({ view, content: legend, expandIconClass: "esri-icon-legend" }), "bottom-left");
 
-    if (!currentRenderer || !currentRenderer.visualVariables) {
-      symbologyNotSupportedMessage.style.display = "block";
-      symbologyEditorPanel.style.display = "none";
-      return;
-    } else {
-      symbologyNotSupportedMessage.style.display = "none";
-      symbologyEditorPanel.style.display = "block";
+    // UI
+    const startColorPicker = document.getElementById("startColorPicker");
+    const middleColorPicker = document.getElementById("middleColorPicker");
+    const endColorPicker = document.getElementById("endColorPicker");
+    const transparencyInput = document.getElementById("transparencyInput");
+    const planeHeightInput = document.getElementById("planeHeightInput");
+    const colorRampPreview = document.getElementById("colorRampPreview");
+
+    // Help
+    const helpButton = document.getElementById("helpButton");
+    const helpOverlay = document.getElementById("helpModalOverlay");
+    const helpModal = document.getElementById("helpModal");
+    const closeHelpModalBtn = document.getElementById("closeHelpModal");
+
+    // Helpers
+    const TEMP_MIN = 266, TEMP_MID = 277, TEMP_MAX = 286;
+    let booting = true;
+
+    function updateColorRampPreview(stops) {
+      if (!colorRampPreview) return;
+      const colors = stops.map(s => s.color && s.color.toHex ? s.color.toHex() : s.color);
+      colorRampPreview.style.background = `linear-gradient(to right, ${colors.join(", ")})`;
     }
-
-    const colorVV = currentRenderer.visualVariables.find(vv => vv.type === "color");
-    if (colorVV && colorVV.stops.length === 3) {
-      startColorPicker.value = rgbaToHex(colorVV.stops[0].color);
-      middleColorPicker.value = rgbaToHex(colorVV.stops[1].color);
-      endColorPicker.value = rgbaToHex(colorVV.stops[2].color);
-      updateColorRampPreview(colorVV.stops);
-    } else {
-      startColorPicker.value = "#4575b4";
-      middleColorPicker.value = "#ffffbf";
-      endColorPicker.value = "#d73027";
+    function updatePreviewFromInputs() {
       updateColorRampPreview([
-        { value: 266, color: "#4575b4" },
-        { value: 277, color: "#ffffbf" },
-        { value: 286, color: "#d73027" }
+        { value: TEMP_MIN, color: startColorPicker?.value || "#4575b4" },
+        { value: TEMP_MID, color: middleColorPicker?.value || "#ffffbf" },
+        { value: TEMP_MAX, color: endColorPicker?.value || "#d73027" }
       ]);
     }
+    function debounce(fn, d = 100) { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), d); }; }
 
-    const opacityVV = currentRenderer.visualVariables.find(vv => vv.type === "opacity");
-    if (opacityVV && opacityVV.stops.length > 0) {
-      transparencyInput.value = opacityVV.stops[0].opacity;
-    } else {
-      transparencyInput.value = 1; 
+    function buildRenderer(base) {
+      const r = base.clone();
+      let colorVV = r.visualVariables.find(v => v.type === "color");
+      if (!colorVV) { colorVV = { type: "color", field: "Temperature", stops: [] }; r.visualVariables.push(colorVV); }
+      colorVV.field = "Temperature";
+      colorVV.stops = [
+        { value: TEMP_MIN, color: startColorPicker?.value || "#4575b4" },
+        { value: TEMP_MID, color: middleColorPicker?.value || "#ffffbf" },
+        { value: TEMP_MAX, color: endColorPicker?.value || "#d73027" }
+      ];
+      return r;
     }
-    
-    if (layer.elevationInfo && typeof layer.elevationInfo.offset === 'number') {
-          planeHeightInput.value = layer.elevationInfo.offset;
-      } else {
-          planeHeightInput.value = 300000; 
-      }
-  }
 
-  const helpButton = document.getElementById("helpButton");
-  const helpModalOverlay = document.getElementById("helpModalOverlay");
-  const closeHelpModalButton = document.getElementById("closeHelpModal");
-
-  helpButton.addEventListener("click", function() {
-    helpModalOverlay.style.display = "flex";
-  });
-
-  closeHelpModalButton.addEventListener("click", function() {
-    helpModalOverlay.style.display = "none";
-  });
-
-  helpModalOverlay.addEventListener("click", function(event) {
-    if (event.target === helpModalOverlay) {
-      helpModalOverlay.style.display = "none";
+    function applyAll() {
+      if (booting) return;
+      euHorizontalLayer.renderer = buildRenderer(euHorizontalLayer.renderer);
+      const op = Number(transparencyInput?.value);
+      euHorizontalLayer.opacity = Number.isFinite(op) ? op : 1;
+      const offset = Number(planeHeightInput?.value);
+      euHorizontalLayer.elevationInfo = { mode: "relative-to-ground", offset: Number.isFinite(offset) ? offset : 300000 };
     }
-  });
 
+    const applyWithPreviewDebounced = debounce(() => {
+      updatePreviewFromInputs();   // (u nìkterých souborù se funkce jmenuje updatePreviewFromInputs)
+      if (!booting) applyAll();
+    }, 100);
+
+    // UI: preview + help hned
+    updatePreviewFromInputs();
+    const openHelp = () => { if (!helpOverlay) return; helpOverlay.style.display = "flex"; helpOverlay.setAttribute("aria-hidden", "false"); };
+    const closeHelp = () => { if (!helpOverlay) return; helpOverlay.style.display = "none"; helpOverlay.setAttribute("aria-hidden", "true"); };
+    helpButton?.addEventListener("click", e => { e.preventDefault(); openHelp(); });
+    closeHelpModalBtn?.addEventListener("click", e => { e.preventDefault(); closeHelp(); });
+    helpOverlay?.addEventListener("click", e => { if (e.target === helpOverlay) closeHelp(); });
+    window.addEventListener("keydown", e => { if (e.key === "Escape") closeHelp(); });
+    helpModal?.addEventListener("click", e => e.stopPropagation());
+
+    // Listeners hned
+    startColorPicker?.addEventListener("input", () => { updatePreviewFromInputs(); applyWithPreviewDebounced(); });
+    middleColorPicker?.addEventListener("input", () => { updatePreviewFromInputs(); applyWithPreviewDebounced(); });
+    endColorPicker?.addEventListener("input", () => { updatePreviewFromInputs(); applyWithPreviewDebounced(); });
+    transparencyInput?.addEventListener("input", applyWithPreviewDebounced);
+    planeHeightInput?.addEventListener("input", applyWithPreviewDebounced);
+
+    // Boot
+    view.when(async () => {
+      await view.whenLayerView(euHorizontalLayer).catch(() => {});
+      try {
+        await view.goTo({ position: { latitude: 48, longitude: 15, z: 6000000 }, tilt: 0, heading: -1 }, { duration: 5000 });
+      } catch (e) {}
+      booting = false;
+      applyAll();
+    });
+  });
 });
