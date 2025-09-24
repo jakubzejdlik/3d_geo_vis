@@ -11,6 +11,7 @@ document.addEventListener("DOMContentLoaded", function() {
     "esri/symbols/PointSymbol3D"
   ], function(Map, SceneView, FeatureLayer, Home, BasemapGallery, Expand, Legend, ObjectSymbol3DLayer, PointSymbol3D) {
 
+    // Map & Layer
     const map = new Map({ basemap: "topo-vector", ground: "world-elevation" });
 
     const euGraduatedSymbolsLayer = new FeatureLayer({
@@ -37,6 +38,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
     map.add(euGraduatedSymbolsLayer);
 
+    // View
     const view = new SceneView({
       container: "viewDiv", map,
       camera: { position: { latitude: 48, longitude: 15, z: 15000000 }, tilt: 0, heading: -1 },
@@ -51,7 +53,7 @@ document.addEventListener("DOMContentLoaded", function() {
     const legend = new Legend({ view, layerInfos: [{ layer: euGraduatedSymbolsLayer, title: "3D Graduated Symbols" }] });
     view.ui.add(new Expand({ view, content: legend, expandIconClass: "esri-icon-legend" }), "bottom-left");
 
-    // UI
+    // Symbology
     const startColorPicker = document.getElementById("startColorPicker");
     const middleColorPicker = document.getElementById("middleColorPicker");
     const endColorPicker = document.getElementById("endColorPicker");
@@ -69,7 +71,7 @@ document.addEventListener("DOMContentLoaded", function() {
     const helpModal = document.getElementById("helpModal");
     const closeHelpModalBtn = document.getElementById("closeHelpModal");
 
-    // Helpers
+    // Helpers / Renderers / Apply
     const TEMP_MIN = 269, TEMP_MID = 277, TEMP_MAX = 286;
     let booting = true;
 
@@ -99,12 +101,10 @@ document.addEventListener("DOMContentLoaded", function() {
 
     function buildRenderer(base) {
       const r = base.clone();
-      // tvar + prùmìr
       const prim = String(shapeSelect?.value || "cylinder").toLowerCase();
       const diam = Number(diameterInput?.value) || 80000;
       r.symbol = buildPoint3DSymbol(prim, diam);
 
-      // barvy
       let colorVV = r.visualVariables.find(v => v.type === "color");
       if (!colorVV) { colorVV = { type: "color", field: "Temperature", stops: [] }; r.visualVariables.push(colorVV); }
       colorVV.field = "Temperature";
@@ -114,7 +114,6 @@ document.addEventListener("DOMContentLoaded", function() {
         { value: TEMP_MAX, color: endColorPicker?.value || "#d73027" }
       ];
 
-      // výška
       let sizeH = r.visualVariables.find(v => v.type === "size" && v.axis === "height");
       if (!sizeH) { sizeH = { type: "size", axis: "height", field: "Temperature", stops: [] }; r.visualVariables.push(sizeH); }
       const minH = Number(minZOffsetInput?.value) || 0;
@@ -135,12 +134,10 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 
     const applyWithPreviewDebounced = debounce(() => {
-      updatePreviewFromInputs();   // (u nìkterých souborù se funkce jmenuje updatePreviewFromInputs)
+      updatePreviewFromInputs();  
       if (!booting) applyAll();
     }, 100);
 
-
-    // UI: preview + help hned
     updatePreviewFromInputs();
     const openHelp = () => { if (!helpOverlay) return; helpOverlay.style.display = "flex"; helpOverlay.setAttribute("aria-hidden", "false"); };
     const closeHelp = () => { if (!helpOverlay) return; helpOverlay.style.display = "none"; helpOverlay.setAttribute("aria-hidden", "true"); };
@@ -150,7 +147,7 @@ document.addEventListener("DOMContentLoaded", function() {
     window.addEventListener("keydown", e => { if (e.key === "Escape") closeHelp(); });
     helpModal?.addEventListener("click", e => e.stopPropagation());
 
-    // Listeners hned
+    // Listeners
     startColorPicker?.addEventListener("input", () => { updatePreviewFromInputs(); applyWithPreviewDebounced(); });
     middleColorPicker?.addEventListener("input", () => { updatePreviewFromInputs(); applyWithPreviewDebounced(); });
     endColorPicker?.addEventListener("input", () => { updatePreviewFromInputs(); applyWithPreviewDebounced(); });
@@ -162,7 +159,7 @@ document.addEventListener("DOMContentLoaded", function() {
     shapeSelect?.addEventListener("input", applyWithPreviewDebounced);
     shapeSelect?.addEventListener("change", applyWithPreviewDebounced);
 
-    // Boot
+    // Zoom
     view.when(async () => {
       await view.whenLayerView(euGraduatedSymbolsLayer).catch(() => {});
       try {

@@ -9,6 +9,7 @@ document.addEventListener("DOMContentLoaded", function() {
     "esri/widgets/Legend"
   ], function(Map, SceneView, FeatureLayer, Home, BasemapGallery, Expand, Legend) {
 
+    // Map & Layer
     const map = new Map({ basemap: "topo-vector", ground: "world-elevation" });
 
     const euHorizontalLayer = new FeatureLayer({
@@ -28,7 +29,8 @@ document.addEventListener("DOMContentLoaded", function() {
     });
 
     map.add(euHorizontalLayer);
-
+    
+    // View
     const view = new SceneView({
       container: "viewDiv", map,
       camera: { position: { latitude: 48, longitude: 15, z: 15000000 }, tilt: 0, heading: -1 },
@@ -43,7 +45,7 @@ document.addEventListener("DOMContentLoaded", function() {
     const legend = new Legend({ view, layerInfos: [{ layer: euHorizontalLayer, title: "Horizontal Planes" }] });
     view.ui.add(new Expand({ view, content: legend, expandIconClass: "esri-icon-legend" }), "bottom-left");
 
-    // UI
+    // Symbology
     const startColorPicker = document.getElementById("startColorPicker");
     const middleColorPicker = document.getElementById("middleColorPicker");
     const endColorPicker = document.getElementById("endColorPicker");
@@ -57,8 +59,9 @@ document.addEventListener("DOMContentLoaded", function() {
     const helpModal = document.getElementById("helpModal");
     const closeHelpModalBtn = document.getElementById("closeHelpModal");
 
-    // Helpers
+    // Helpers / Renderers / Apply
     const TEMP_MIN = 266, TEMP_MID = 277, TEMP_MAX = 286;
+    
     let booting = true;
 
     function updateColorRampPreview(stops) {
@@ -98,11 +101,10 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 
     const applyWithPreviewDebounced = debounce(() => {
-      updatePreviewFromInputs();   // (u nìkterých souborù se funkce jmenuje updatePreviewFromInputs)
+      updatePreviewFromInputs();
       if (!booting) applyAll();
     }, 100);
 
-    // UI: preview + help hned
     updatePreviewFromInputs();
     const openHelp = () => { if (!helpOverlay) return; helpOverlay.style.display = "flex"; helpOverlay.setAttribute("aria-hidden", "false"); };
     const closeHelp = () => { if (!helpOverlay) return; helpOverlay.style.display = "none"; helpOverlay.setAttribute("aria-hidden", "true"); };
@@ -112,14 +114,14 @@ document.addEventListener("DOMContentLoaded", function() {
     window.addEventListener("keydown", e => { if (e.key === "Escape") closeHelp(); });
     helpModal?.addEventListener("click", e => e.stopPropagation());
 
-    // Listeners hned
+    // Listeners
     startColorPicker?.addEventListener("input", () => { updatePreviewFromInputs(); applyWithPreviewDebounced(); });
     middleColorPicker?.addEventListener("input", () => { updatePreviewFromInputs(); applyWithPreviewDebounced(); });
     endColorPicker?.addEventListener("input", () => { updatePreviewFromInputs(); applyWithPreviewDebounced(); });
     transparencyInput?.addEventListener("input", applyWithPreviewDebounced);
     planeHeightInput?.addEventListener("input", applyWithPreviewDebounced);
 
-    // Boot
+    // Zoom
     view.when(async () => {
       await view.whenLayerView(euHorizontalLayer).catch(() => {});
       try {

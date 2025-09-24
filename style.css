@@ -23,7 +23,6 @@ html, body {
   bottom: 0;
 }
 
-/* Upravené styly pro headerBar */
 #headerBar {
   position: absolute;
   top: 0;
@@ -32,38 +31,34 @@ html, body {
   height: var(--header-h);
   background-image: linear-gradient(to right, #00467f, #005a9b);
   color: white;
-  padding: 0 10px; /* Pøidáme horizontální odsazení */
+  padding: 0 10px; 
   z-index: 100;
   box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-  display: flex; /* Použijeme flexbox */
-  align-items: center; /* Vertikálnì vycentruje položky */
-  justify-content: space-between; /* Rozloží položky s prostorem mezi nimi */
+  display: flex; 
+  align-items: center;
+  justify-content: space-between;
 }
 
-/* Styl pro hlavní název aplikace (nyní vlevo) */
 .header-app-title {
   font-size: 20px;
   font-weight: bold;
-  line-height: var(--header-h); /* Pro vertikální centrování textu */
-  flex-shrink: 0; /* Zabrání zmenšování názvu */
-}
-
-/* Nový kontejner pro pravé prvky (navigaèní tlaèítka + nápovìda) */
-.header-right-controls {
-  display: flex;
-  align-items: center;
-  gap: 15px; /* Mezera mezi navigaèními odkazy a tlaèítkem nápovìdy */
-}
-
-/* Styl pro kontejner navigaèních tlaèítek (uvnitø header-right-controls) */
-.header-nav-links {
-  display: flex;
-  align-items: center;
-  gap: 15px; /* Mezera mezi jednotlivými navigaèními odkazy */
+  line-height: var(--header-h); 
   flex-shrink: 0; 
 }
 
-/* Styl pro jednotlivé navigaèní odkazy */
+.header-right-controls {
+  display: flex;
+  align-items: center;
+  gap: 15px; 
+}
+
+.header-nav-links {
+  display: flex;
+  align-items: center;
+  gap: 15px; 
+  flex-shrink: 0; 
+}
+
 .nav-link {
   color: white;
   text-decoration: none; 
@@ -80,15 +75,12 @@ html, body {
   background-color: rgba(255, 255, 255, 0.2); 
 }
 
-/* Styl pro aktivní navigaèní odkaz */
 .nav-link.active-nav-link {
-  background-color: rgba(255, 255, 255, 0.3); /* Mírnì tmavší pozadí pro zvýraznìní */
-  font-weight: bold; /* Tuèné písmo */
-  border: 1px solid rgba(255, 255, 255, 0.5); /* Jemný rámeèek */
+  background-color: rgba(255, 255, 255, 0.3); 
+  font-weight: bold; 
+  border: 1px solid rgba(255, 255, 255, 0.5); 
 }
 
-
-/* Styl pro tlaèítko nápovìdy (nyní uvnitø header-right-controls) */
 #helpButton {
   background-color: transparent;
   border: none;
@@ -103,8 +95,6 @@ html, body {
   color: #f0f0f0;
 }
 
-
-/* Styly pro panel symbologie - Fixní boèní panel */
 #symbologyEditorPanel {
   position: fixed; 
   top: var(--header-h); 
@@ -121,7 +111,6 @@ html, body {
   overflow-y: auto; 
 }
 
-/* Hlavní nadpis panelu */
 #symbologyEditorPanel h3#symbologyPanelTitle { 
   font-size: 22px; 
   margin-top: 0;
@@ -129,15 +118,13 @@ html, body {
   color: #333;
 }
 
-/* Styly pro oddìlovací èáru pod hlavním nadpisem */
-#symbologyEditorPanel h3#symbologyPanelTitle + hr { /* Upraveno, aby se aplikovalo po h3 */
+#symbologyEditorPanel h3#symbologyPanelTitle + hr { 
   margin-top: 15px;
   margin-bottom: 20px;
   border: 0;
   border-top: 1px solid #eee;
 }
 
-/* Styly pro podnadpisy sekcí */
 #symbologyEditorPanel h2:not(#symbologyPanelTitle) {
   font-size: 16px; 
   color: #666; 
@@ -149,7 +136,6 @@ html, body {
   box-shadow: none; 
   text-align: left; 
 }
-
 
 #symbologyEditorPanel label {
   display: block;
@@ -166,7 +152,6 @@ html, body {
   margin-bottom: 10px;
 }
 
-/* Nový styl pro seskupení color pickerù */
 .color-pickers-wrapper {
   display: flex;
   gap: 10px; 
@@ -184,7 +169,6 @@ html, body {
   cursor: pointer;
 }
 
-/* Pùvodní styly pro color-input-group, ponechány pro pøípadné další použití */
 .color-input-group {
     display: flex;
     align-items: center;
@@ -209,31 +193,11 @@ html, body {
     margin-bottom: 0;
 }
 
-
-/* Styly pro range input (prùhlednost) */
 #transparencyInput {
   width: 100%;
   margin-bottom: 10px;
 }
 
-
-#symbologyEditorPanel button {
-  background-color: #28a745;
-  color: white;
-  padding: 10px 15px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 14px;
-  transition: background-color 0.2s ease-in-out;
-  width: 100%;
-}
-
-#symbologyEditorPanel button:hover {
-  background-color: #218838;
-}
-
-/* Styly pro náhled barevné škály */
 #colorRampPreview {
   width: 100%;
   height: 20px; 
@@ -243,14 +207,12 @@ html, body {
   border-radius: 4px;
 }
 
-/* Styly pro horizontální oddìlovaèe - Vylepšené */
 hr {
   border: 0;
-  border-top: 1px solid #dcdcdc; /* Svìtlejší a výraznìjší èára */
-  margin: 25px 0; /* Více místa kolem oddìlovaèe */
+  border-top: 1px solid #dcdcdc;
+  margin: 25px 0; 
 }
 
-/* --- Styly pro MODAL NÁPOVÌDY --- */
 .modal-overlay {
   display: none; 
   position: fixed;

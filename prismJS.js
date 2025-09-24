@@ -9,7 +9,7 @@ document.addEventListener("DOMContentLoaded", function() {
     "esri/widgets/Legend"
   ], function(Map, SceneView, FeatureLayer, Home, BasemapGallery, Expand, Legend) {
 
-    // --- Map & layer
+    // Map & layer
     const map = new Map({ basemap: "topo-vector", ground: "world-elevation" });
 
     const euPrismLayer = new FeatureLayer({
@@ -47,6 +47,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
     map.add(euPrismLayer);
 
+    // View
     const view = new SceneView({
       container: "viewDiv",
       map,
@@ -55,14 +56,14 @@ document.addEventListener("DOMContentLoaded", function() {
       qualityProfile: "high"
     });
 
-    // --- Widgets
+    // Widgets
     view.ui.add(new Home({ view }), "top-left");
     const bg = new BasemapGallery({ view });
     view.ui.add(new Expand({ view, content: bg, expandIconClass: "esri-icon-basemap" }), "top-left");
     const legend = new Legend({ view, layerInfos: [{ layer: euPrismLayer, title: "Prism Map" }] });
     view.ui.add(new Expand({ view, content: legend, expandIconClass: "esri-icon-legend" }), "bottom-left");
 
-    // --- UI
+    // Symbology
     const startColorPicker = document.getElementById("startColorPicker");
     const middleColorPicker = document.getElementById("middleColorPicker");
     const endColorPicker = document.getElementById("endColorPicker");
@@ -78,7 +79,7 @@ document.addEventListener("DOMContentLoaded", function() {
     const helpModal = document.getElementById("helpModal");
     const closeHelpModalBtn = document.getElementById("closeHelpModal");
 
-    // --- Helpers
+    // Helpers / Renderers / Apply
     const TEMP_MIN = 265, TEMP_MID = 277, TEMP_MAX = 289;
     let booting = true;
 
@@ -98,7 +99,6 @@ document.addEventListener("DOMContentLoaded", function() {
 
     function buildRenderer(base) {
       const r = base.clone();
-      // color
       let colorVV = r.visualVariables.find(v => v.type === "color");
       if (!colorVV) { colorVV = { type: "color", field: "Temperature", stops: [] }; r.visualVariables.push(colorVV); }
       colorVV.field = "Temperature";
@@ -107,7 +107,6 @@ document.addEventListener("DOMContentLoaded", function() {
         { value: TEMP_MID, color: middleColorPicker?.value || "#ffffbf" },
         { value: TEMP_MAX, color: endColorPicker?.value || "#d73027" }
       ];
-      // extruze
       let sizeVV = r.visualVariables.find(v => v.type === "size");
       if (!sizeVV) { sizeVV = { type: "size", field: "Temperature", valueUnit: "meters", stops: [] }; r.visualVariables.push(sizeVV); }
       const minH = Number(minZOffsetInput?.value) || 0;
@@ -128,12 +127,10 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 
     const applyWithPreviewDebounced = debounce(() => {
-      updatePreviewFromInputs();   // (u nìkterých souborù se funkce jmenuje updatePreviewFromInputs)
+      updatePreviewFromInputs();  
       if (!booting) applyAll();
     }, 100);
 
-
-    // --- UI: preview+help okamžitì
     updatePreviewFromInputs();
     const openHelp = () => { if (!helpOverlay) return; helpOverlay.style.display = "flex"; helpOverlay.setAttribute("aria-hidden", "false"); };
     const closeHelp = () => { if (!helpOverlay) return; helpOverlay.style.display = "none"; helpOverlay.setAttribute("aria-hidden", "true"); };
@@ -143,7 +140,7 @@ document.addEventListener("DOMContentLoaded", function() {
     window.addEventListener("keydown", e => { if (e.key === "Escape") closeHelp(); });
     helpModal?.addEventListener("click", e => e.stopPropagation());
 
-    // UI listeners – hned
+    // Listeners
     startColorPicker?.addEventListener("input", () => { updatePreviewFromInputs(); applyWithPreviewDebounced(); });
     middleColorPicker?.addEventListener("input", () => { updatePreviewFromInputs(); applyWithPreviewDebounced(); });
     endColorPicker?.addEventListener("input", () => { updatePreviewFromInputs(); applyWithPreviewDebounced(); });
@@ -152,14 +149,14 @@ document.addEventListener("DOMContentLoaded", function() {
     maxZOffsetInput?.addEventListener("input", applyWithPreviewDebounced);
     heightAboveGroundInput?.addEventListener("input", applyWithPreviewDebounced);
 
-    // --- Boot / fly-in
+    // Zoom
     view.when(async () => {
       await view.whenLayerView(euPrismLayer).catch(() => {});
       try {
         await view.goTo({ position: { latitude: 48, longitude: 15, z: 6000000 }, tilt: 0, heading: -1 }, { duration: 5000 });
       } catch (e) {}
       booting = false;
-      applyAll(); // dorovnat stav z UI
+      applyAll();
     });
   });
 });
